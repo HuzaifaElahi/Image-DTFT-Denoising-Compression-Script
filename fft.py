@@ -157,25 +157,29 @@ def denoising_mode(img):
 
 def compression_mode(img):
     transformed_original = dft2_fast(img)
+    num_non_zeros = np.count_nonzero(transformed_original)
+    print("original: num zeros: ", num_non_zeros)
     data_csr = sparse.csr_matrix(transformed_original)
     sparse.save_npz("original.npz", data_csr)
     size = os.path.getsize("original.npz")
     plt.figure(figsize=(15, 5))
     plt.subplot(231), plt.imshow(img, cmap="gray")
-    plt.title("Original, size={} bytes".format(size)), plt.xticks([]), plt.yticks([])
+    plt.title("Original, size={} bytes, non zeros={}".format(size, num_non_zeros)), plt.xticks([]), plt.yticks([])
     compression_factors = [30, 60, 80, 90, 95]
     index_count = 2
     for factor in compression_factors:
         transformed = transformed_original.copy()
         thresh = np.percentile(abs(transformed), factor)
         transformed[abs(transformed) < thresh] = 0
+        num_non_zeros = np.count_nonzero(transformed)
         data_csr = sparse.csr_matrix(transformed)
         file_name = "@{}%.npz".format(factor)
         sparse.save_npz(file_name, data_csr)
         size = os.path.getsize(file_name)
         back = inverse_dft2_fast(transformed).real
         plt.subplot(2, 3, index_count), plt.imshow(back, cmap="gray")
-        plt.title("@ {}%, size={} bytes".format(factor, size)), plt.xticks([]), plt.yticks([])
+        plt.title("@ {}%, size={} bytes, non zeros={}".format(factor, size, num_non_zeros)), plt.xticks([]), plt.yticks([])
+        print(factor, "%: num non zeros: ", num_non_zeros)
         index_count = index_count + 1
     plt.suptitle("Compression Levels", fontsize=22)
     plt.show()
